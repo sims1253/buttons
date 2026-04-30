@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Moral Weight of a Vote — Red/Blue Button</title>
+<title>Push the Button</title>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
@@ -133,8 +133,8 @@
 <body>
 
 <header>
-  <h1>Moral Weight of a Vote</h1>
-  <p class="subtitle">A red/blue button thought experiment. What is the expected harm or benefit of one vote among billions?</p>
+  <h1>My Finger is on the Button</h1>
+  <p class="subtitle">Push the Button</p>
 </header>
 
 <div class="section">
@@ -164,7 +164,7 @@
         <!-- Direct mode controls -->
         <div class="input-group mode-direct">
           <div class="row1"><label>Expected blue share (&mu;)</label><span class="val" id="vMu">0.520</span></div>
-          <input type="range" id="sMu" class="range-blue" min="0.30" max="0.70" step="0.005" value="0.52">
+          <input type="range" id="sMu" class="range-blue" min="0" max="1" step="0.005" value="0.52">
           <div class="blue-share-bar"><div class="red-part" id="barRed" style="width:48%"></div><div class="blue-part" id="barBlue" style="width:52%"></div></div>
           <div class="hint">Red share = <span id="vRedShare">0.480</span>. Blue voters die if &mu; falls below 50% on election day.</div>
         </div>
@@ -194,17 +194,21 @@
 </div>
 
 <div class="section">
-  <div class="section-title">Per-vote moral weight</div>
+  <div class="section-title">Per-vote </div>
   <div class="columns">
     <div class="col red">
       <div class="col-header"><span class="dot"></span>Red Vote<span class="role">vote against blue</span></div>
       <div class="framework">
         <div class="fw-label">Pivotality framework</div>
         <div class="metric"><span class="label">Expected harm</span><span class="value" id="rp-harm">—</span></div>
+        <div class="metric"><span class="label">Expected personal benefit</span><span class="value" id="rp-self">—</span></div>
+        <div class="metric divider"><span class="label">Net expected value</span><span class="value net" id="rp-net">—</span></div>
       </div>
       <div class="framework">
         <div class="fw-label">Share-of-outcome framework</div>
         <div class="metric"><span class="label">Expected harm</span><span class="value" id="rs-harm">—</span></div>
+        <div class="metric"><span class="label">Expected personal benefit</span><span class="value" id="rs-self">—</span></div>
+        <div class="metric divider"><span class="label">Net expected value</span><span class="value net" id="rs-net">—</span></div>
       </div>
     </div>
     <div class="col blue">
@@ -237,40 +241,29 @@
 </div>
 
 <div class="section">
-  <div class="section-title">Calibration anchors</div>
-  <div class="card anchors">
-    <div class="anchor-list">
-      <div class="anchor"><span>One drunk-driving trip</span><span>~1&times;10&#x207B;&#x2076; deaths</span></div>
-      <div class="anchor"><span>One cigarette (secondhand)</span><span>~5&times;10&#x207B;&#x2078; deaths</span></div>
-      <div class="anchor"><span>One car trip (emissions)</span><span>~2&times;10&#x207B;&#x2079; deaths</span></div>
-    </div>
-  </div>
-</div>
-
-<div class="section">
   <div class="card">
     <button class="how-toggle" id="howToggle" type="button">How this works <span class="arrow">&#x25BC;</span></button>
     <div class="how-body" id="howBody">
       <h3>The Thought Experiment</h3>
-      <p>Everyone in the world votes red or blue. If more than 50% press blue, everyone survives. If 50% or fewer press blue, only red voters survive &mdash; all blue voters die. Your single vote is one among billions. What is its expected moral weight?</p>
+      <p>Everyone in the world has to take a private vote by pressing a red or blue button. If more than 50% of people press the blue button, everyone survives. If less than 50% of people press the blue button, only people who pressed the red button survive. Which button would you press?</p>
 
       <h3>The model</h3>
       <p>The final blue share <em>X</em> is modelled as <code>Normal(&mu;, &sigma;&sup2;)</code>. In <em>direct</em> mode you set &mu; (expected blue share); in <em>detailed</em> mode you set <code>P(blue wins)</code> and the conditional loss share <code>b<sub>loss</sub></code> independently. The expected death toll if blue loses is <code>D = b<sub>loss</sub> &middot; N</code>.</p>
 
       <h3>Pivotality framework (marginal causal contribution)</h3>
       <p>Asks: what is the chance your one vote is the one that tips the outcome? With <em>X ~ Normal(&mu;, &sigma;&sup2;)</em>, a single vote shifts &mu; by <code>1/N</code>, so pivotality = <code>&phi;((0.5&minus;&mu;)/&sigma;) / (&sigma; &middot; N)</code>. Expected harm (red) or benefit (blue) = pivotality &times; D.</p>
-      <p>Under this view your vote only matters if it changes the outcome. With billions of voters that probability is astronomically small &mdash; even though the stakes are enormous.</p>
-      <p><em>Aggregate note.</em> Per-vote pivotality is a derivative; naively multiplying by the size of the red bloc <code>(1&minus;&mu;)N</code> would yield more deaths than the model permits. So the aggregate view computes the actual <code>&Delta;P(lose)</code> from the whole bloc shifting (red bloc &rarr; all-blue makes &mu;=1; blue bloc &rarr; all-red makes &mu;=0), then multiplies by <code>D</code>. At the bloc level the two frameworks therefore converge on the same total <code>D &middot; P(lose)</code> &mdash; they only disagree about how to slice it among individuals.</p>
+      <p>Under this view your vote only matters if it changes the outcome. With billions of voters that probability is astronomically small.</p>
+      <p><em>Aggregate note.</em> Per-vote pivotality is a derivative; naively multiplying it by the size of a bloc would linearise the response and overshoot the death toll. For a bloc as a whole the natural counterfactual is "everyone in the bloc voted the other way." In both directions expected deaths collapse to ~0 (a unanimous-blue world has no losing scenarios; a unanimous-red world has no blue voters to die). So the bloc-level harm or benefit equals the current expected death toll <code>D &middot; P(lose)</code>. The two frameworks therefore agree at the bloc level and only diverge in how they slice that total among individuals.</p>
 
       <h3>Share-of-outcome framework (collective responsibility)</h3>
       <p>Asks: what share of the collective outcome do you bear responsibility for? Total expected deaths in the world = <code>D &middot; P(lose)</code>. Red voters share the harm equally across the red bloc; blue voters share the prevention equally across the blue bloc.</p>
       <p>Per red voter: <code>D &middot; P(lose) / ((1&minus;&mu;) &middot; N) = b<sub>loss</sub> &middot; P(lose) / (1&minus;&mu;)</code>. Per blue voter: <code>b<sub>loss</sub> &middot; P(lose) / &mu;</code>.</p>
 
-      <h3>Personal cost (blue voter)</h3>
-      <p>If you vote blue and blue loses, you die. Expected personal cost = <code>P(lose) &times; 1 life</code>.</p>
+      <h3>Personal stake (red vs. blue, by counterfactual)</h3>
+      <p>Each row compares casting that vote against the opposite. If you vote blue and blue loses, you die: expected personal cost = <code>P(lose) &times; 1 life</code>. If you vote red instead of blue, you avoid that fate: expected personal benefit = <code>+P(lose) &times; 1 life</code>.</p>
 
       <div class="moral-note">
-        The choice between these frameworks is a contested moral question, not a mathematical one. Pivotality says &ldquo;only votes that change outcomes matter.&rdquo; Share-of-outcome says &ldquo;everyone bears a share of the collective result.&rdquo; Neither is provably correct. The purpose of this tool is to make the tension concrete.
+        The choice between these frameworks is a contested moral question. Pivotality says &ldquo;only votes that change outcomes matter.&rdquo; Share-of-outcome says &ldquo;everyone bears a share of the collective result.&rdquo; Neither is provably correct.
       </div>
     </div>
   </div>
@@ -311,6 +304,13 @@ function fmt(x) {
   return x.toExponential(2);
 }
 function fmtN(n) { return Math.round(n).toLocaleString('en-US'); }
+function fmtProb(p) {
+  if (p <= 0) return '0';
+  if (p >= 1) return '1';
+  if (p > 0.999) return '1 − ' + (1 - p).toExponential(2);
+  if (p < 0.001) return p.toExponential(2);
+  return p.toFixed(4);
+}
 function fmtBig(x) {
   if (x >= 1e12) return (x/1e12).toFixed(1) + 'T';
   if (x >= 1e9) return (x/1e9).toFixed(1) + 'B';
@@ -383,31 +383,47 @@ function compute() {
   const z = (0.5 - mu) / sigma;
 
   // Pivotality framework
-  // Per-vote pivotality is a derivative; for an entire bloc we use the actual
-  // ΔP(lose) from shifting μ by the bloc fraction (not pivotality × bloc, which
-  // linearises and can exceed the total death toll).
+  // Per-vote pivotality is a derivative; multiplying by a full bloc would
+  // linearise and overshoot. For the bloc as a whole the relevant counterfactual
+  // is "everyone in the bloc switched their vote." In both directions that
+  // collapses expected deaths to ~0 (μ→1 means no losing scenarios; μ→0 means
+  // no blue voters to die), so the bloc-level harm/benefit is just the current
+  // expected death toll D·P(lose). The two frameworks therefore agree at the
+  // bloc level; they only differ per individual.
   const pivotality = normalPDF(z) / (sigma * N);
-  const pLoseIfRedSwitched  = normalCDF((0.5 - 1) / sigma);            // μ → 1
-  const pLoseIfBlueSwitched = normalCDF((0.5 - 0) / sigma);            // μ → 0
-  const rpHarm    = aggOn ? D * Math.max(0, pLose - pLoseIfRedSwitched)  : pivotality * D;
-  const bpBenefit = aggOn ? D * Math.max(0, pLoseIfBlueSwitched - pLose) : pivotality * D;
+  const expectedDeaths = D * pLose;
+  const rpHarm    = aggOn ? expectedDeaths : pivotality * D;
+  const bpBenefit = aggOn ? expectedDeaths : pivotality * D;
   const bpCost = pLose * 1 * blueMult;
   const bpNet = bpBenefit - bpCost;
+  const rpSelf = pLose * 1 * redMult;            // own life saved vs. blue counterfactual
+  const rpNet = rpSelf - rpHarm;
 
   // Share-of-outcome framework — divide by bloc size, not N
   const rsHarm = (bLoss * pLose / (1 - muSafe)) * redMult;
   const bsBenefit = (bLoss * pLose / muSafe) * blueMult;
   const bsCost = pLose * 1 * blueMult;
   const bsNet = bsBenefit - bsCost;
+  const rsSelf = pLose * 1 * redMult;
+  const rsNet = rsSelf - rsHarm;
 
-  const pivX = pivotality > 0 ? Math.round(1 / pivotality) : Infinity;
+  const pivX = pivotality > 0 ? 1 / pivotality : Infinity;
   const redLabel = aggOn ? ` (${fmtBig(redBloc)} red voters)` : '';
   const blueLabel = aggOn ? ` (${fmtBig(blueBloc)} blue voters)` : '';
 
   document.getElementById('rp-harm').textContent = fmt(rpHarm) + ' deaths' + redLabel;
   document.getElementById('rp-harm').className = 'value' + (rpHarm > 0 ? ' negative' : '');
+  document.getElementById('rp-self').textContent = '+' + fmt(rpSelf) + ' lives' + redLabel;
+  document.getElementById('rp-self').className = 'value positive';
+  document.getElementById('rp-net').textContent = (rpNet >= 0 ? '+' : '') + fmt(rpNet) + ' lives' + redLabel;
+  document.getElementById('rp-net').className = 'value net' + (rpNet >= 0 ? ' positive' : ' negative');
+
   document.getElementById('rs-harm').textContent = fmt(rsHarm) + ' deaths' + redLabel;
   document.getElementById('rs-harm').className = 'value' + (rsHarm > 0 ? ' negative' : '');
+  document.getElementById('rs-self').textContent = '+' + fmt(rsSelf) + ' lives' + redLabel;
+  document.getElementById('rs-self').className = 'value positive';
+  document.getElementById('rs-net').textContent = (rsNet >= 0 ? '+' : '') + fmt(rsNet) + ' lives' + redLabel;
+  document.getElementById('rs-net').className = 'value net' + (rsNet >= 0 ? ' positive' : ' negative');
 
   document.getElementById('bp-benefit').textContent = fmt(bpBenefit) + ' deaths averted' + blueLabel;
   document.getElementById('bp-benefit').className = 'value' + (bpBenefit > 0 ? ' positive' : '');
@@ -423,15 +439,17 @@ function compute() {
   document.getElementById('bs-net').textContent = (bsNet >= 0 ? '+' : '') + fmt(bsNet) + ' lives' + blueLabel;
   document.getElementById('bs-net').className = 'value net' + (bsNet >= 0 ? ' positive' : ' negative');
 
-  document.getElementById('piv1inX').textContent = pivX === Infinity ? '—' : '1 in ' + fmtN(pivX);
-  document.getElementById('pWinDisplay').textContent = pBlueWins.toFixed(3);
+  document.getElementById('piv1inX').textContent =
+    pivX === Infinity || !isFinite(pivX) ? '—'
+    : '1 in ' + (pivX < 1e15 ? fmtN(pivX) : pivX.toExponential(2));
+  document.getElementById('pWinDisplay').textContent = fmtProb(pBlueWins);
 
   drawPlot(mu, sigma);
 }
 
 // --- Plot ---
-const PLOT_X_MIN = 0.25;
-const PLOT_X_MAX = 0.75;
+const PLOT_X_MIN = 0;
+const PLOT_X_MAX = 1;
 // Fix the y-scale to the smallest sigma slider supports, so peaks shrink as sigma grows
 const Y_PEAK_REF = (1 / 0.005) * normalPDF(0); // peak height at sigma = sigma_min
 
@@ -472,7 +490,7 @@ function drawPlot(mu, sigma) {
   ctx.font = '10px ' + getComputedStyle(document.body).fontFamily;
   ctx.fillStyle = '#8a94a3';
   ctx.textAlign = 'center';
-  [0.30, 0.40, 0.50, 0.60, 0.70].forEach(tick => {
+  [0, 0.25, 0.50, 0.75, 1].forEach(tick => {
     const [tx] = toC(tick, 0);
     if (tick !== 0.5) {
       ctx.beginPath(); ctx.moveTo(tx, pad.t); ctx.lineTo(tx, pad.t + ph); ctx.stroke();
@@ -529,7 +547,7 @@ function drawPlot(mu, sigma) {
     ctx.setLineDash([]);
     ctx.fillStyle = '#4a5568';
     ctx.font = '10px ' + getComputedStyle(document.body).fontFamily;
-    ctx.textAlign = mu > 0.62 ? 'right' : (mu < 0.38 ? 'left' : 'center');
+    ctx.textAlign = mu > 0.85 ? 'right' : (mu < 0.15 ? 'left' : 'center');
     ctx.fillText('μ = ' + mu.toFixed(3), mx, pad.t - 2);
   }
 }
@@ -539,7 +557,7 @@ function syncDirectFromDetailed() {
   const sigma = parseFloat(document.getElementById('sS').value);
   const pBlueWins = parseFloat(document.getElementById('sP').value);
   const mu = 0.5 + sigma * normalInvCDF(pBlueWins);
-  const muClamped = Math.max(0.30, Math.min(0.70, mu));
+  const muClamped = Math.max(0, Math.min(1, mu));
   document.getElementById('sMu').value = muClamped;
 }
 function syncDetailedFromDirect() {
