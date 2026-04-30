@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Moral Weight of a Vote — Red/Blue Button</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --red: #d64545; --red-soft: #f3a3a3; --red-bg: #fbf1f1; --red-ink: #8b1a1a;
+    --blue: #2b6cb0; --blue-soft: #9ec5e6; --blue-bg: #eef5fb; --blue-ink: #1a3d6b;
+    --ink: #1a202c; --ink-2: #4a5568; --ink-3: #8a94a3;
+    --bg: #f7f7f5; --card: #ffffff; --border: #e6e6e2; --border-2: #ececea;
+    --good: #2f855a;
+    --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, Roboto, sans-serif;
+    --serif: 'Iowan Old Style', 'Palatino Linotype', Palatino, 'Book Antiqua', Georgia, serif;
+    --mono: 'SF Mono', 'JetBrains Mono', 'Fira Mono', Menlo, monospace;
+    --shadow: 0 1px 2px rgba(20,20,20,0.04), 0 1px 0 rgba(20,20,20,0.02);
+    --radius: 10px;
+  }
+  html { font-size: 15px; }
+  body { font-family: var(--font); color: var(--ink); background: var(--bg); line-height: 1.55; padding: 2.25rem 1rem 4rem; max-width: 980px; margin: 0 auto; }
+
+  header { text-align: center; margin-bottom: 2rem; }
+  h1 { font-family: var(--serif); font-size: 2rem; font-weight: 700; letter-spacing: -0.01em; line-height: 1.15; margin-bottom: 0.4rem; }
+  .subtitle { color: var(--ink-2); font-size: 0.95rem; max-width: 36rem; margin: 0 auto; }
+
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); }
+  .section { margin-bottom: 1.25rem; }
+  .section-title { font-size: 0.78rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 0.55rem; padding-left: 0.15rem; }
+
+  /* Mode toggle */
+  .mode-row { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.55rem; padding-left: 0.15rem; }
+  .mode-row .section-title { margin-bottom: 0; }
+  .mode-toggle { display: inline-flex; background: #ececea; border-radius: 999px; padding: 3px; gap: 2px; }
+  .mode-toggle button { font-family: inherit; font-size: 0.78rem; font-weight: 600; padding: 0.3rem 0.75rem; border: none; background: transparent; color: var(--ink-2); border-radius: 999px; cursor: pointer; transition: all 0.15s; }
+  .mode-toggle button.active { background: #fff; color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,0.06); }
+
+  /* Inputs */
+  .inputs { padding: 1.1rem 1.25rem; }
+  .input-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem 1.75rem; }
+  .input-group { display: flex; flex-direction: column; gap: 0.25rem; }
+  .input-group .row1 { display: flex; justify-content: space-between; align-items: baseline; gap: 0.5rem; }
+  .input-group label { font-size: 0.86rem; font-weight: 600; color: var(--ink); }
+  .input-group .val { font-family: var(--mono); font-size: 0.82rem; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+  .input-group .hint { font-size: 0.74rem; color: var(--ink-3); margin-top: -0.05rem; }
+
+  input[type=range] {
+    -webkit-appearance: none; appearance: none;
+    width: 100%; height: 4px; background: #d8d8d4; border-radius: 999px; outline: none; cursor: pointer; margin-top: 0.2rem;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none; width: 16px; height: 16px; border-radius: 50%;
+    background: #fff; border: 2px solid var(--ink); cursor: pointer; box-shadow: 0 1px 2px rgba(0,0,0,0.15);
+  }
+  input[type=range]::-moz-range-thumb {
+    width: 16px; height: 16px; border-radius: 50%; background: #fff; border: 2px solid var(--ink); cursor: pointer;
+  }
+  /* Colored thumbs */
+  input.range-blue::-webkit-slider-thumb { border-color: var(--blue); }
+  input.range-blue::-moz-range-thumb { border-color: var(--blue); }
+  input.range-red::-webkit-slider-thumb { border-color: var(--red); }
+  input.range-red::-moz-range-thumb { border-color: var(--red); }
+
+  .blue-share-bar { display: flex; height: 8px; border-radius: 999px; overflow: hidden; margin-top: 0.4rem; border: 1px solid var(--border); }
+  .blue-share-bar .red-part { background: var(--red); }
+  .blue-share-bar .blue-part { background: var(--blue); }
+
+  .aggregate-toggle { display: flex; align-items: center; gap: 0.6rem; padding: 0.85rem 1.25rem; border-top: 1px solid var(--border-2); margin-top: 0.5rem; }
+  .aggregate-toggle label { font-size: 0.85rem; font-weight: 600; cursor: pointer; }
+  .agg-input { width: 140px; font-family: var(--mono); font-size: 0.82rem; padding: 0.3rem 0.5rem; border: 1px solid var(--border); border-radius: 6px; background: #fafafa; }
+  .agg-input:focus { outline: none; border-color: var(--ink-2); background: #fff; }
+  .aggregate-toggle .agg-hint { font-size: 0.78rem; color: var(--ink-3); margin-left: auto; font-family: var(--mono); }
+
+  /* Results */
+  .columns { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  .col { border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border); background: var(--card); box-shadow: var(--shadow); }
+  .col-header { padding: 0.7rem 1rem; font-weight: 700; font-size: 1rem; display: flex; align-items: center; gap: 0.55rem; }
+  .col.red .col-header { background: var(--red); color: #fff; }
+  .col.blue .col-header { background: var(--blue); color: #fff; }
+  .col-header .dot { width: 10px; height: 10px; border-radius: 50%; background: rgba(255,255,255,0.85); }
+  .col-header .role { margin-left: auto; font-size: 0.75rem; font-weight: 500; opacity: 0.85; letter-spacing: 0.04em; text-transform: uppercase; }
+  .framework { padding: 0.85rem 1rem; }
+  .framework + .framework { border-top: 1px solid var(--border-2); }
+  .col.red .framework { background: linear-gradient(180deg, var(--red-bg), #fff); }
+  .col.blue .framework { background: linear-gradient(180deg, var(--blue-bg), #fff); }
+  .col.red .framework + .framework, .col.blue .framework + .framework { background: #fff; }
+  .fw-label { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-3); margin-bottom: 0.45rem; }
+  .metric { display: flex; justify-content: space-between; align-items: baseline; padding: 0.18rem 0; gap: 0.5rem; }
+  .metric.divider { border-top: 1px dashed var(--border); margin-top: 0.3rem; padding-top: 0.4rem; }
+  .metric .label { font-size: 0.85rem; color: var(--ink-2); }
+  .metric .value { font-family: var(--mono); font-size: 0.86rem; font-weight: 600; font-variant-numeric: tabular-nums; text-align: right; }
+  .metric .value.negative { color: var(--red-ink); }
+  .metric .value.positive { color: var(--good); }
+  .metric .value.net { font-size: 0.92rem; }
+
+  /* Plot */
+  .plot-section { padding: 1rem 1.25rem 1.25rem; }
+  .plot-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 0.6rem; gap: 1rem; }
+  .plot-header h2 { font-size: 1rem; font-weight: 700; }
+  .plot-header .badge { font-family: var(--mono); font-size: 0.78rem; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+  .plot-header .badge strong { color: var(--ink); }
+  #plot { width: 100%; height: 240px; display: block; }
+
+  /* Anchors */
+  .anchors { padding: 0.95rem 1.25rem; }
+  .anchors h2 { font-size: 0.92rem; font-weight: 700; margin-bottom: 0.55rem; }
+  .anchor-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0.5rem 1.25rem; font-size: 0.85rem; color: var(--ink-2); }
+  .anchor-list .anchor { display: flex; justify-content: space-between; gap: 0.5rem; }
+  .anchor-list .anchor span { font-family: var(--mono); color: var(--ink); font-variant-numeric: tabular-nums; }
+
+  /* How this works */
+  .how-toggle { width: 100%; background: none; border: none; padding: 0.85rem 1.25rem; font-size: 0.95rem; font-weight: 700; text-align: left; cursor: pointer; display: flex; justify-content: space-between; align-items: center; color: var(--ink); border-radius: var(--radius); transition: background 0.15s; }
+  .how-toggle:hover { background: #f3f3f0; }
+  .how-toggle .arrow { transition: transform 0.2s; color: var(--ink-3); }
+  .how-toggle.open .arrow { transform: rotate(180deg); }
+  .how-body { display: none; padding: 0 1.25rem 1.1rem; font-size: 0.9rem; line-height: 1.65; color: var(--ink-2); }
+  .how-body.show { display: block; }
+  .how-body h3 { font-family: var(--serif); font-size: 1.05rem; font-weight: 700; color: var(--ink); margin: 0.85rem 0 0.35rem; }
+  .how-body p { margin-bottom: 0.55rem; }
+  .how-body code { font-family: var(--mono); font-size: 0.84rem; background: #f3f3f0; padding: 0.05rem 0.35rem; border-radius: 4px; }
+  .how-body .moral-note { background: #f3f3f0; border-left: 3px solid var(--ink-3); padding: 0.65rem 0.85rem; margin: 0.7rem 0; font-style: italic; color: var(--ink-2); border-radius: 0 6px 6px 0; }
+
+  @media (max-width: 700px) {
+    h1 { font-size: 1.5rem; }
+    .input-grid { grid-template-columns: 1fr; }
+    .columns { grid-template-columns: 1fr; }
+    .aggregate-toggle { flex-wrap: wrap; }
+    .aggregate-toggle .agg-hint { margin-left: 0; width: 100%; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Moral Weight of a Vote</h1>
+  <p class="subtitle">A red/blue button thought experiment. What is the expected harm or benefit of one vote among billions?</p>
+</header>
+
+<div class="section">
+  <div class="mode-row">
+    <span class="section-title">Inputs</span>
+    <div class="mode-toggle" role="tablist">
+      <button id="modeDirect" class="active" type="button">Direct proportion</button>
+      <button id="modeDetailed" type="button">Detailed parameters</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="inputs">
+      <div class="input-grid">
+
+        <div class="input-group">
+          <div class="row1"><label>World population (N)</label><span class="val" id="vN">8,000,000,000</span></div>
+          <input type="range" id="sN" min="1e9" max="10e9" step="1e8" value="8e9">
+        </div>
+
+        <div class="input-group">
+          <div class="row1"><label>Outcome uncertainty (&sigma;)</label><span class="val" id="vS">0.050</span></div>
+          <input type="range" id="sS" min="0.005" max="0.20" step="0.005" value="0.05">
+          <div class="hint">Std. dev. of final blue share around its expected value.</div>
+        </div>
+
+        <!-- Direct mode controls -->
+        <div class="input-group mode-direct">
+          <div class="row1"><label>Expected blue share (&mu;)</label><span class="val" id="vMu">0.520</span></div>
+          <input type="range" id="sMu" class="range-blue" min="0.30" max="0.70" step="0.005" value="0.52">
+          <div class="blue-share-bar"><div class="red-part" id="barRed" style="width:48%"></div><div class="blue-part" id="barBlue" style="width:52%"></div></div>
+          <div class="hint">Red share = <span id="vRedShare">0.480</span>. Blue voters die if &mu; falls below 50% on election day.</div>
+        </div>
+        <div class="input-group mode-direct"><!-- spacer --></div>
+
+        <!-- Detailed mode controls -->
+        <div class="input-group mode-detailed" style="display:none">
+          <div class="row1"><label>P(blue clears 50%)</label><span class="val" id="vP">0.550</span></div>
+          <input type="range" id="sP" class="range-blue" min="0.01" max="0.99" step="0.005" value="0.55">
+          <div class="hint">Probability blue wins, given &sigma;.</div>
+        </div>
+        <div class="input-group mode-detailed" style="display:none">
+          <div class="row1"><label>Blue share if blue loses (b<sub>loss</sub>)</label><span class="val" id="vB">0.40</span></div>
+          <input type="range" id="sB" class="range-red" min="0.05" max="0.50" step="0.01" value="0.40">
+          <div class="hint">Conditional mean blue share in losing scenarios = expected death toll &divide; N.</div>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="aggregate-toggle">
+      <input type="checkbox" id="aggCheck">
+      <label for="aggCheck">Aggregate view: show totals for each voting bloc</label>
+      <span class="agg-hint" id="aggHint">red bloc: — &middot; blue bloc: —</span>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-title">Per-vote moral weight</div>
+  <div class="columns">
+    <div class="col red">
+      <div class="col-header"><span class="dot"></span>Red Vote<span class="role">vote against blue</span></div>
+      <div class="framework">
+        <div class="fw-label">Pivotality framework</div>
+        <div class="metric"><span class="label">Expected harm</span><span class="value" id="rp-harm">—</span></div>
+      </div>
+      <div class="framework">
+        <div class="fw-label">Share-of-outcome framework</div>
+        <div class="metric"><span class="label">Expected harm</span><span class="value" id="rs-harm">—</span></div>
+      </div>
+    </div>
+    <div class="col blue">
+      <div class="col-header"><span class="dot"></span>Blue Vote<span class="role">vote for blue</span></div>
+      <div class="framework">
+        <div class="fw-label">Pivotality framework</div>
+        <div class="metric"><span class="label">Expected benefit</span><span class="value" id="bp-benefit">—</span></div>
+        <div class="metric"><span class="label">Expected personal cost</span><span class="value" id="bp-cost">—</span></div>
+        <div class="metric divider"><span class="label">Net expected value</span><span class="value net" id="bp-net">—</span></div>
+      </div>
+      <div class="framework">
+        <div class="fw-label">Share-of-outcome framework</div>
+        <div class="metric"><span class="label">Expected benefit</span><span class="value" id="bs-benefit">—</span></div>
+        <div class="metric"><span class="label">Expected personal cost</span><span class="value" id="bs-cost">—</span></div>
+        <div class="metric divider"><span class="label">Net expected value</span><span class="value net" id="bs-net">—</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-title">Distribution of final blue vote share</div>
+  <div class="card plot-section">
+    <div class="plot-header">
+      <h2>P(blue wins) = <span id="pWinDisplay">—</span></h2>
+      <div class="badge">Pivotality: <strong id="piv1inX">—</strong></div>
+    </div>
+    <canvas id="plot"></canvas>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-title">Calibration anchors</div>
+  <div class="card anchors">
+    <div class="anchor-list">
+      <div class="anchor"><span>One drunk-driving trip</span><span>~1&times;10&#x207B;&#x2076; deaths</span></div>
+      <div class="anchor"><span>One cigarette (secondhand)</span><span>~5&times;10&#x207B;&#x2078; deaths</span></div>
+      <div class="anchor"><span>One car trip (emissions)</span><span>~2&times;10&#x207B;&#x2079; deaths</span></div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="card">
+    <button class="how-toggle" id="howToggle" type="button">How this works <span class="arrow">&#x25BC;</span></button>
+    <div class="how-body" id="howBody">
+      <h3>The Thought Experiment</h3>
+      <p>Everyone in the world votes red or blue. If more than 50% press blue, everyone survives. If 50% or fewer press blue, only red voters survive &mdash; all blue voters die. Your single vote is one among billions. What is its expected moral weight?</p>
+
+      <h3>The model</h3>
+      <p>The final blue share <em>X</em> is modelled as <code>Normal(&mu;, &sigma;&sup2;)</code>. In <em>direct</em> mode you set &mu; (expected blue share); in <em>detailed</em> mode you set <code>P(blue wins)</code> and the conditional loss share <code>b<sub>loss</sub></code> independently. The expected death toll if blue loses is <code>D = b<sub>loss</sub> &middot; N</code>.</p>
+
+      <h3>Pivotality framework (marginal causal contribution)</h3>
+      <p>Asks: what is the chance your one vote is the one that tips the outcome? With <em>X ~ Normal(&mu;, &sigma;&sup2;)</em>, a single vote shifts &mu; by <code>1/N</code>, so pivotality = <code>&phi;((0.5&minus;&mu;)/&sigma;) / (&sigma; &middot; N)</code>. Expected harm (red) or benefit (blue) = pivotality &times; D.</p>
+      <p>Under this view your vote only matters if it changes the outcome. With billions of voters that probability is astronomically small &mdash; even though the stakes are enormous.</p>
+      <p><em>Aggregate note.</em> Per-vote pivotality is a derivative; naively multiplying by the size of the red bloc <code>(1&minus;&mu;)N</code> would yield more deaths than the model permits. So the aggregate view computes the actual <code>&Delta;P(lose)</code> from the whole bloc shifting (red bloc &rarr; all-blue makes &mu;=1; blue bloc &rarr; all-red makes &mu;=0), then multiplies by <code>D</code>. At the bloc level the two frameworks therefore converge on the same total <code>D &middot; P(lose)</code> &mdash; they only disagree about how to slice it among individuals.</p>
+
+      <h3>Share-of-outcome framework (collective responsibility)</h3>
+      <p>Asks: what share of the collective outcome do you bear responsibility for? Total expected deaths in the world = <code>D &middot; P(lose)</code>. Red voters share the harm equally across the red bloc; blue voters share the prevention equally across the blue bloc.</p>
+      <p>Per red voter: <code>D &middot; P(lose) / ((1&minus;&mu;) &middot; N) = b<sub>loss</sub> &middot; P(lose) / (1&minus;&mu;)</code>. Per blue voter: <code>b<sub>loss</sub> &middot; P(lose) / &mu;</code>.</p>
+
+      <h3>Personal cost (blue voter)</h3>
+      <p>If you vote blue and blue loses, you die. Expected personal cost = <code>P(lose) &times; 1 life</code>.</p>
+
+      <div class="moral-note">
+        The choice between these frameworks is a contested moral question, not a mathematical one. Pivotality says &ldquo;only votes that change outcomes matter.&rdquo; Share-of-outcome says &ldquo;everyone bears a share of the collective result.&rdquo; Neither is provably correct. The purpose of this tool is to make the tension concrete.
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// --- Math helpers ---
+function normalPDF(x) { return Math.exp(-0.5 * x * x) / Math.sqrt(2 * Math.PI); }
+function normalCDF(x) {
+  const a1=0.254829592, a2=-0.284496736, a3=1.421413741, a4=-1.453152027, a5=1.061405429, p=0.3275911;
+  const sign = x < 0 ? -1 : 1;
+  const ax = Math.abs(x) / Math.SQRT2;
+  const t = 1 / (1 + p * ax);
+  const y = 1 - (((((a5*t+a4)*t)+a3)*t+a2)*t+a1)*t * Math.exp(-ax*ax);
+  return 0.5 * (1 + sign * y);
+}
+function normalInvCDF(p) {
+  if (p <= 0) return -Infinity; if (p >= 1) return Infinity;
+  if (p < 0.5) return -normalInvCDF(1 - p);
+  const a=[-3.969683028665376e1,2.209460984245205e2,-2.759285104469687e2,1.383577518672690e2,-3.066479806614716e1,2.506628277459239e0];
+  const b=[-5.447609879822406e1,1.615858368580409e2,-1.556989798598866e2,6.680131188771972e1,-1.328068155288572e1];
+  const c=[-7.784894002430293e-3,-3.223964580411365e-1,-2.400758277161838e0,-2.549732539343734e0,4.374664141464968e0,2.938163982698783e0];
+  const d=[7.784695709041462e-3,3.224671290700398e-1,2.445134137142996e0,3.754408661907416e0];
+  const pL=0.02425, pH=1-pL;
+  let q,r;
+  if(p<pL){q=Math.sqrt(-2*Math.log(p));return((((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5])/((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1));}
+  if(p<=pH){q=p-0.5;r=q*q;return(((((a[0]*r+a[1])*r+a[2])*r+a[3])*r+a[4])*r+a[5])*q/(((((b[0]*r+b[1])*r+b[2])*r+b[3])*r+b[4])*r+1);}
+  q=Math.sqrt(-2*Math.log(1-p));return-(((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5])/((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1);
+}
+
+// --- Formatting ---
+function fmt(x) {
+  if (x === 0) return '0';
+  const abs = Math.abs(x);
+  if (abs >= 1e6) return x.toExponential(2);
+  if (abs >= 1) return x.toFixed(2);
+  if (abs >= 0.01) return x.toFixed(4);
+  return x.toExponential(2);
+}
+function fmtN(n) { return Math.round(n).toLocaleString('en-US'); }
+function fmtBig(x) {
+  if (x >= 1e12) return (x/1e12).toFixed(1) + 'T';
+  if (x >= 1e9) return (x/1e9).toFixed(1) + 'B';
+  if (x >= 1e6) return (x/1e6).toFixed(1) + 'M';
+  if (x >= 1e3) return (x/1e3).toFixed(1) + 'K';
+  return x.toFixed(0);
+}
+
+// --- State ---
+let mode = 'direct'; // 'direct' | 'detailed'
+
+function setMode(m) {
+  mode = m;
+  document.getElementById('modeDirect').classList.toggle('active', m === 'direct');
+  document.getElementById('modeDetailed').classList.toggle('active', m === 'detailed');
+  document.querySelectorAll('.mode-direct').forEach(el => el.style.display = m === 'direct' ? '' : 'none');
+  document.querySelectorAll('.mode-detailed').forEach(el => el.style.display = m === 'detailed' ? '' : 'none');
+  compute();
+}
+
+// --- Computation ---
+function compute() {
+  const N = parseFloat(document.getElementById('sN').value);
+  const sigma = parseFloat(document.getElementById('sS').value);
+  const aggOn = document.getElementById('aggCheck').checked;
+
+  let mu, pBlueWins, bLoss;
+
+  if (mode === 'direct') {
+    mu = parseFloat(document.getElementById('sMu').value);
+    pBlueWins = 1 - normalCDF((0.5 - mu) / sigma);
+    // Conditional expected blue share given losing (truncated normal mean below 0.5)
+    const z = (0.5 - mu) / sigma;
+    const pLose = normalCDF(z);
+    if (pLose > 1e-12) {
+      bLoss = mu - sigma * normalPDF(z) / pLose;
+    } else {
+      bLoss = mu; // degenerate
+    }
+    // Clamp to [0, 0.5]
+    bLoss = Math.max(0, Math.min(0.5, bLoss));
+  } else {
+    pBlueWins = parseFloat(document.getElementById('sP').value);
+    bLoss = parseFloat(document.getElementById('sB').value);
+    mu = 0.5 + sigma * normalInvCDF(pBlueWins);
+  }
+
+  // Echo inputs
+  document.getElementById('vN').textContent = fmtN(N);
+  document.getElementById('vS').textContent = sigma.toFixed(3);
+  if (mode === 'direct') {
+    document.getElementById('vMu').textContent = mu.toFixed(3);
+    document.getElementById('vRedShare').textContent = (1 - mu).toFixed(3);
+    document.getElementById('barRed').style.width = ((1 - mu) * 100) + '%';
+    document.getElementById('barBlue').style.width = (mu * 100) + '%';
+  } else {
+    document.getElementById('vP').textContent = pBlueWins.toFixed(3);
+    document.getElementById('vB').textContent = bLoss.toFixed(2);
+  }
+  const muSafe = Math.min(0.999, Math.max(0.001, mu));
+  const redBloc = (1 - muSafe) * N;
+  const blueBloc = muSafe * N;
+  document.getElementById('aggHint').textContent =
+    'red bloc: ' + fmtBig(redBloc) + ' · blue bloc: ' + fmtBig(blueBloc);
+
+  const D = bLoss * N;
+  const redMult = aggOn ? redBloc : 1;
+  const blueMult = aggOn ? blueBloc : 1;
+  const pLose = 1 - pBlueWins;
+  const z = (0.5 - mu) / sigma;
+
+  // Pivotality framework
+  // Per-vote pivotality is a derivative; for an entire bloc we use the actual
+  // ΔP(lose) from shifting μ by the bloc fraction (not pivotality × bloc, which
+  // linearises and can exceed the total death toll).
+  const pivotality = normalPDF(z) / (sigma * N);
+  const pLoseIfRedSwitched  = normalCDF((0.5 - 1) / sigma);            // μ → 1
+  const pLoseIfBlueSwitched = normalCDF((0.5 - 0) / sigma);            // μ → 0
+  const rpHarm    = aggOn ? D * Math.max(0, pLose - pLoseIfRedSwitched)  : pivotality * D;
+  const bpBenefit = aggOn ? D * Math.max(0, pLoseIfBlueSwitched - pLose) : pivotality * D;
+  const bpCost = pLose * 1 * blueMult;
+  const bpNet = bpBenefit - bpCost;
+
+  // Share-of-outcome framework — divide by bloc size, not N
+  const rsHarm = (bLoss * pLose / (1 - muSafe)) * redMult;
+  const bsBenefit = (bLoss * pLose / muSafe) * blueMult;
+  const bsCost = pLose * 1 * blueMult;
+  const bsNet = bsBenefit - bsCost;
+
+  const pivX = pivotality > 0 ? Math.round(1 / pivotality) : Infinity;
+  const redLabel = aggOn ? ` (${fmtBig(redBloc)} red voters)` : '';
+  const blueLabel = aggOn ? ` (${fmtBig(blueBloc)} blue voters)` : '';
+
+  document.getElementById('rp-harm').textContent = fmt(rpHarm) + ' deaths' + redLabel;
+  document.getElementById('rp-harm').className = 'value' + (rpHarm > 0 ? ' negative' : '');
+  document.getElementById('rs-harm').textContent = fmt(rsHarm) + ' deaths' + redLabel;
+  document.getElementById('rs-harm').className = 'value' + (rsHarm > 0 ? ' negative' : '');
+
+  document.getElementById('bp-benefit').textContent = fmt(bpBenefit) + ' deaths averted' + blueLabel;
+  document.getElementById('bp-benefit').className = 'value' + (bpBenefit > 0 ? ' positive' : '');
+  document.getElementById('bp-cost').textContent = fmt(bpCost) + ' lives' + blueLabel;
+  document.getElementById('bp-cost').className = 'value negative';
+  document.getElementById('bp-net').textContent = (bpNet >= 0 ? '+' : '') + fmt(bpNet) + ' lives' + blueLabel;
+  document.getElementById('bp-net').className = 'value net' + (bpNet >= 0 ? ' positive' : ' negative');
+
+  document.getElementById('bs-benefit').textContent = fmt(bsBenefit) + ' deaths averted' + blueLabel;
+  document.getElementById('bs-benefit').className = 'value' + (bsBenefit > 0 ? ' positive' : '');
+  document.getElementById('bs-cost').textContent = fmt(bsCost) + ' lives' + blueLabel;
+  document.getElementById('bs-cost').className = 'value negative';
+  document.getElementById('bs-net').textContent = (bsNet >= 0 ? '+' : '') + fmt(bsNet) + ' lives' + blueLabel;
+  document.getElementById('bs-net').className = 'value net' + (bsNet >= 0 ? ' positive' : ' negative');
+
+  document.getElementById('piv1inX').textContent = pivX === Infinity ? '—' : '1 in ' + fmtN(pivX);
+  document.getElementById('pWinDisplay').textContent = pBlueWins.toFixed(3);
+
+  drawPlot(mu, sigma);
+}
+
+// --- Plot ---
+const PLOT_X_MIN = 0.25;
+const PLOT_X_MAX = 0.75;
+// Fix the y-scale to the smallest sigma slider supports, so peaks shrink as sigma grows
+const Y_PEAK_REF = (1 / 0.005) * normalPDF(0); // peak height at sigma = sigma_min
+
+function drawPlot(mu, sigma) {
+  const canvas = document.getElementById('plot');
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  const W = rect.width, H = rect.height;
+  const pad = { l: 30, r: 18, t: 14, b: 34 };
+  const pw = W - pad.l - pad.r, ph = H - pad.t - pad.b;
+
+  ctx.clearRect(0, 0, W, H);
+
+  const xMin = PLOT_X_MIN, xMax = PLOT_X_MAX, range = xMax - xMin;
+  const nPts = 400;
+  const pts = [];
+  let curPeak = 0;
+  for (let i = 0; i <= nPts; i++) {
+    const x = xMin + (range * i) / nPts;
+    const y = normalPDF((x - mu) / sigma) / sigma;
+    pts.push({ x, y });
+    if (y > curPeak) curPeak = y;
+  }
+  // Scale y so a sigma=0.04 distribution roughly fills the plot, but never exceeds
+  const yScale = Math.max(curPeak * 1.05, 1 / 0.04 * normalPDF(0) * 1.05);
+
+  function toC(x, y) {
+    return [pad.l + ((x - xMin) / range) * pw, pad.t + ph - (y / yScale) * ph];
+  }
+
+  // Gridlines at 30/40/50/60/70%
+  ctx.strokeStyle = '#ececea';
+  ctx.lineWidth = 1;
+  ctx.font = '10px ' + getComputedStyle(document.body).fontFamily;
+  ctx.fillStyle = '#8a94a3';
+  ctx.textAlign = 'center';
+  [0.30, 0.40, 0.50, 0.60, 0.70].forEach(tick => {
+    const [tx] = toC(tick, 0);
+    if (tick !== 0.5) {
+      ctx.beginPath(); ctx.moveTo(tx, pad.t); ctx.lineTo(tx, pad.t + ph); ctx.stroke();
+    }
+    ctx.fillText((tick * 100).toFixed(0) + '%', tx, pad.t + ph + 16);
+  });
+
+  // Threshold at 0.5
+  const [thx] = toC(0.5, 0);
+  ctx.strokeStyle = '#1a202c';
+  ctx.lineWidth = 1.25;
+  ctx.setLineDash([5, 4]);
+  ctx.beginPath(); ctx.moveTo(thx, pad.t); ctx.lineTo(thx, pad.t + ph); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = '#1a202c';
+  ctx.font = '11px ' + getComputedStyle(document.body).fontFamily;
+  ctx.fillText('50%', thx, pad.t + ph + 30);
+
+  // Fill regions
+  function fillRegion(predicate, color) {
+    ctx.beginPath();
+    let started = false;
+    let lastX = null;
+    const baseY = pad.t + ph;
+    for (const p of pts) {
+      if (!predicate(p.x)) { if (started) { ctx.lineTo(toC(lastX, 0)[0], baseY); ctx.closePath(); ctx.fillStyle = color; ctx.fill(); started = false; } continue; }
+      const [cx, cy] = toC(p.x, Math.min(p.y, yScale));
+      if (!started) { ctx.moveTo(cx, baseY); ctx.lineTo(cx, cy); started = true; }
+      else ctx.lineTo(cx, cy);
+      lastX = p.x;
+    }
+    if (started) { ctx.lineTo(toC(lastX, 0)[0], baseY); ctx.closePath(); ctx.fillStyle = color; ctx.fill(); }
+  }
+  fillRegion(x => x <= 0.5, 'rgba(214,69,69,0.18)');
+  fillRegion(x => x >= 0.5, 'rgba(43,108,176,0.18)');
+
+  // Curve
+  ctx.beginPath();
+  for (let i = 0; i < pts.length; i++) {
+    const [cx, cy] = toC(pts[i].x, Math.min(pts[i].y, yScale));
+    if (i === 0) ctx.moveTo(cx, cy); else ctx.lineTo(cx, cy);
+  }
+  ctx.strokeStyle = '#1a202c';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // Mean marker
+  if (mu >= xMin && mu <= xMax) {
+    const [mx] = toC(mu, 0);
+    ctx.strokeStyle = '#4a5568';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([2, 3]);
+    ctx.beginPath(); ctx.moveTo(mx, pad.t); ctx.lineTo(mx, pad.t + ph); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = '#4a5568';
+    ctx.font = '10px ' + getComputedStyle(document.body).fontFamily;
+    ctx.textAlign = mu > 0.62 ? 'right' : (mu < 0.38 ? 'left' : 'center');
+    ctx.fillText('μ = ' + mu.toFixed(3), mx, pad.t - 2);
+  }
+}
+
+// --- Sync between modes (so switching feels coherent) ---
+function syncDirectFromDetailed() {
+  const sigma = parseFloat(document.getElementById('sS').value);
+  const pBlueWins = parseFloat(document.getElementById('sP').value);
+  const mu = 0.5 + sigma * normalInvCDF(pBlueWins);
+  const muClamped = Math.max(0.30, Math.min(0.70, mu));
+  document.getElementById('sMu').value = muClamped;
+}
+function syncDetailedFromDirect() {
+  const sigma = parseFloat(document.getElementById('sS').value);
+  const mu = parseFloat(document.getElementById('sMu').value);
+  const pBlueWins = 1 - normalCDF((0.5 - mu) / sigma);
+  const pClamped = Math.max(0.01, Math.min(0.99, pBlueWins));
+  document.getElementById('sP').value = pClamped;
+}
+
+// --- Events ---
+document.querySelectorAll('input[type=range]').forEach(el => el.addEventListener('input', compute));
+document.getElementById('aggCheck').addEventListener('change', compute);
+document.getElementById('howToggle').addEventListener('click', function() {
+  this.classList.toggle('open');
+  document.getElementById('howBody').classList.toggle('show');
+});
+document.getElementById('modeDirect').addEventListener('click', () => { if (mode === 'detailed') syncDirectFromDetailed(); setMode('direct'); });
+document.getElementById('modeDetailed').addEventListener('click', () => { if (mode === 'direct') syncDetailedFromDirect(); setMode('detailed'); });
+
+window.addEventListener('resize', compute);
+compute();
+</script>
+</body>
+</html>
