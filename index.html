@@ -45,8 +45,9 @@
   .section-title { font-size: 0.78rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 0.55rem; padding-left: 0.15rem; }
 
   /* Mode toggle */
-  .mode-row { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.55rem; padding-left: 0.15rem; }
+  .mode-row { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.55rem; padding-left: 0.15rem; flex-wrap: wrap; }
   .mode-row .section-title { margin-bottom: 0; }
+  .mode-row .dist-label { font-size: 0.78rem; font-weight: 600; color: var(--ink-3); margin-left: auto; }
   .mode-toggle { display: inline-flex; background: #ececea; border-radius: 999px; padding: 3px; gap: 2px; }
   .mode-toggle button { font-family: inherit; font-size: 0.78rem; font-weight: 600; padding: 0.3rem 0.75rem; border: none; background: transparent; color: var(--ink-2); border-radius: 999px; cursor: pointer; transition: all 0.15s; }
   .mode-toggle button.active { background: #fff; color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,0.06); }
@@ -142,6 +143,7 @@
     .columns { grid-template-columns: 1fr; }
     .aggregate-toggle { flex-wrap: wrap; }
     .aggregate-toggle .agg-hint { margin-left: 0; width: 100%; }
+    .mode-row .dist-label { margin-left: 0; }
   }
 </style>
 </head>
@@ -159,6 +161,11 @@
       <button id="modeDirect" class="active" type="button">Direct proportion</button>
       <button id="modeDetailed" type="button">Detailed parameters</button>
     </div>
+    <span class="dist-label">Distribution:</span>
+    <div class="mode-toggle" role="tablist">
+      <button id="distNormal" class="active" type="button">Normal</button>
+      <button id="distBeta" type="button">Beta</button>
+    </div>
   </div>
 
   <div class="card">
@@ -170,10 +177,16 @@
           <input type="range" id="sN" min="1e9" max="10e9" step="1e8" value="8e9">
         </div>
 
-        <div class="input-group">
+        <div class="input-group dist-normal">
           <div class="row1"><label>Outcome uncertainty (&sigma;)</label><span class="val" id="vS">0.050</span></div>
           <input type="range" id="sS" min="0.005" max="0.20" step="0.005" value="0.05">
           <div class="hint">Std. dev. of final blue share around its expected value.</div>
+        </div>
+
+        <div class="input-group dist-beta" style="display:none">
+          <div class="row1"><label>Precision (&phi;)</label><span class="val" id="vPhi">100</span></div>
+          <input type="range" id="sPhi" min="0" max="1000" step="1" value="460">
+          <div class="hint">Higher &phi; = less uncertainty. &asymp; &sigma; of <span id="vPhiSigma">0.050</span></div>
         </div>
 
         <!-- Direct mode controls -->
@@ -263,10 +276,13 @@
       <p>Everyone in the world has to take a private vote by pressing a red or blue button. If more than 50% of people press the blue button, everyone survives. If less than 50% of people press the blue button, only people who pressed the red button survive. Which button would you press?</p>
 
       <h3>The model</h3>
-      <p>The final blue share <em>X</em> is modelled as <code>Normal(&mu;, &sigma;&sup2;)</code>. In <em>direct</em> mode you set &mu; (expected blue share); in <em>detailed</em> mode you set <code>P(blue wins)</code> and the conditional loss share <code>b<sub>loss</sub></code> independently. The expected death toll if blue loses is <code>D = b<sub>loss</sub> &middot; N</code>.</p>
+      <p>The final blue share <em>X</em> is modelled as a distribution over [0, 1]. You can choose between two families:</p>
+      <p><strong>Normal(&mu;, &sigma;&sup2;)</strong> &mdash; the familiar bell curve, parameterised by mean &mu; and standard deviation &sigma;. Simple and widely understood, but technically assigns probability mass outside [0, 1], which is not meaningful for a vote share.</p>
+      <p><strong>Beta(&mu;, &phi;)</strong> &mdash; a distribution naturally bounded to [0, 1], parameterised by mean &mu; and precision &phi;. The shape parameters are &alpha; = &mu;&phi; and &beta; = (1&minus;&mu;)&phi;. Higher &phi; means less uncertainty; the approximate standard deviation is <code>&sigma; &asymp; &radic;(&mu;(1&minus;&mu;) / (&phi;+1))</code>. Because the Beta distribution respects the [0, 1] boundary, it never places probability mass on impossible outcomes.</p>
+      <p>In <em>direct</em> mode you set &mu; (expected blue share); in <em>detailed</em> mode you set <code>P(blue wins)</code> and the conditional loss share <code>b<sub>loss</sub></code> independently. The expected death toll if blue loses is <code>D = b<sub>loss</sub> &middot; N</code>.</p>
 
       <h3>Pivotality framework (marginal causal contribution)</h3>
-      <p>Asks: what is the chance your one vote is the one that tips the outcome? With <em>X ~ Normal(&mu;, &sigma;&sup2;)</em>, a single vote shifts &mu; by <code>1/N</code>, so pivotality = <code>&phi;((0.5&minus;&mu;)/&sigma;) / (&sigma; &middot; N)</code>. Expected harm (red) or benefit (blue) = pivotality &times; D.</p>
+      <p>Asks: what is the chance your one vote is the one that tips the outcome? For the Normal model, a single vote shifts &mu; by <code>1/N</code>, so pivotality = <code>&phi;((0.5&minus;&mu;)/&sigma;) / (&sigma; &middot; N)</code>. For the Beta model, pivotality is computed as the change in P(lose) when &mu; shifts by <code>1/N</code>. Expected harm (red) or benefit (blue) = pivotality &times; D.</p>
       <p>Under this view your vote only matters if it changes the outcome. With billions of voters that probability is astronomically small.</p>
       <p><em>Aggregate note.</em> Per-vote pivotality is a derivative; naively multiplying it by the size of a bloc would linearise the response and overshoot the death toll. For a bloc as a whole the natural counterfactual is "everyone in the bloc voted the other way." In both directions expected deaths collapse to ~0 (a unanimous-blue world has no losing scenarios; a unanimous-red world has no blue voters to die). So the bloc-level harm or benefit equals the current expected death toll <code>D &middot; P(lose)</code>. The two frameworks therefore agree at the bloc level and only diverge in how they slice that total among individuals.</p>
 
@@ -285,7 +301,7 @@
 </div>
 
 <script>
-// --- Math helpers ---
+// --- Normal distribution helpers ---
 function normalPDF(x) { return Math.exp(-0.5 * x * x) / Math.sqrt(2 * Math.PI); }
 function normalCDF(x) {
   const a1=0.254829592, a2=-0.284496736, a3=1.421413741, a4=-1.453152027, a5=1.061405429, p=0.3275911;
@@ -308,6 +324,91 @@ function normalInvCDF(p) {
   if(p<=pH){q=p-0.5;r=q*q;return(((((a[0]*r+a[1])*r+a[2])*r+a[3])*r+a[4])*r+a[5])*q/(((((b[0]*r+b[1])*r+b[2])*r+b[3])*r+b[4])*r+1);}
   q=Math.sqrt(-2*Math.log(1-p));return-(((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5])/((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1);
 }
+
+// --- Beta distribution helpers (mu-phi parameterization) ---
+// α = mu·φ, β = (1−mu)·φ
+
+// Log-gamma via Lanczos approximation
+function lgamma(x) {
+  const g = 7;
+  const coef = [0.99999999999980993, 676.5203681218851, -1259.1392167224028,
+    771.32342877765313, -176.61502916214059, 12.507343278686905,
+    -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7];
+  if (x < 0.5) return Math.log(Math.PI / Math.sin(Math.PI * x)) - lgamma(1 - x);
+  x -= 1;
+  let a = coef[0];
+  for (let i = 1; i < g + 2; i++) a += coef[i] / (x + i);
+  const t = x + g + 0.5;
+  return 0.5 * Math.log(2 * Math.PI) + (x + 0.5) * Math.log(t) - t + Math.log(a);
+}
+
+// Log-beta function
+function lbeta(a, b) { return lgamma(a) + lgamma(b) - lgamma(a + b); }
+
+// Beta PDF at x, given shape parameters a, b
+function betaPDF(x, a, b) {
+  if (x <= 0 || x >= 1) return 0;
+  if (a <= 0 || b <= 0) return 0;
+  return Math.exp((a - 1) * Math.log(x) + (b - 1) * Math.log(1 - x) - lbeta(a, b));
+}
+
+// Regularized incomplete beta function I_x(a, b) via continued fraction
+function betaCF(x, a, b) {
+  const maxIter = 200, eps = 1e-14, tiny = 1e-30;
+  const qab = a + b, qap = a + 1, qam = a - 1;
+  let c = 1, d = 1 - qab * x / qap;
+  if (Math.abs(d) < tiny) d = tiny;
+  d = 1 / d;
+  let h = d;
+  for (let m = 1; m <= maxIter; m++) {
+    const m2 = 2 * m;
+    let aa = m * (b - m) * x / ((qam + m2) * (a + m2));
+    d = 1 + aa * d; if (Math.abs(d) < tiny) d = tiny;
+    c = 1 + aa / c; if (Math.abs(c) < tiny) c = tiny;
+    d = 1 / d; h *= d * c;
+    aa = -(a + m) * (qab + m) * x / ((a + m2) * (qap + m2));
+    d = 1 + aa * d; if (Math.abs(d) < tiny) d = tiny;
+    c = 1 + aa / c; if (Math.abs(c) < tiny) c = tiny;
+    d = 1 / d; const del = d * c; h *= del;
+    if (Math.abs(del - 1) < eps) break;
+  }
+  return h;
+}
+
+function betaCDF(x, a, b) {
+  if (x <= 0) return 0;
+  if (x >= 1) return 1;
+  // Use symmetry for numerical stability
+  if (x > (a + 1) / (a + b + 2)) return 1 - betaCDF(1 - x, b, a);
+  const front = Math.exp(a * Math.log(x) + b * Math.log(1 - x) - lbeta(a, b));
+  return front * betaCF(x, a, b) / a;
+}
+
+// Beta quantile via bisection
+function betaInvCDF(p, a, b) {
+  if (p <= 0) return 0; if (p >= 1) return 1;
+  let lo = 0, hi = 1;
+  for (let i = 0; i < 100; i++) {
+    const mid = (lo + hi) / 2;
+    if (betaCDF(mid, a, b) < p) lo = mid; else hi = mid;
+  }
+  return (lo + hi) / 2;
+}
+
+// Find mu given P(blue wins) and phi, via bisection
+function findMuBeta(pWin, phi) {
+  let lo = 0.001, hi = 0.999;
+  for (let i = 0; i < 100; i++) {
+    const mid = (lo + hi) / 2;
+    const a = mid * phi, b = (1 - mid) * phi;
+    if ((1 - betaCDF(0.5, a, b)) < pWin) lo = mid; else hi = mid;
+  }
+  return (lo + hi) / 2;
+}
+
+// Phi slider mapping: slider [0, 1000] → phi [2, 10000] logarithmically
+function sliderToPhi(v) { return 2 * Math.pow(5000, v / 1000); }
+function phiToSlider(phi) { return 1000 * Math.log(phi / 2) / Math.log(5000); }
 
 // --- Formatting ---
 function fmt(x) {
@@ -336,6 +437,7 @@ function fmtBig(x) {
 
 // --- State ---
 let mode = 'direct'; // 'direct' | 'detailed'
+let dist = 'normal'; // 'normal' | 'beta'
 
 function setMode(m) {
   mode = m;
@@ -346,36 +448,90 @@ function setMode(m) {
   compute();
 }
 
+function setDist(d) {
+  dist = d;
+  document.getElementById('distNormal').classList.toggle('active', d === 'normal');
+  document.getElementById('distBeta').classList.toggle('active', d === 'beta');
+  document.querySelectorAll('.dist-normal').forEach(el => el.style.display = d === 'normal' ? '' : 'none');
+  document.querySelectorAll('.dist-beta').forEach(el => el.style.display = d === 'beta' ? '' : 'none');
+  compute();
+}
+
 // --- Computation ---
 function compute() {
   const N = parseFloat(document.getElementById('sN').value);
-  const sigma = parseFloat(document.getElementById('sS').value);
   const aggOn = document.getElementById('aggCheck').checked;
 
-  let mu, pBlueWins, bLoss;
+  let mu, pBlueWins, bLoss, pivotality, pdfFn;
 
-  if (mode === 'direct') {
-    mu = parseFloat(document.getElementById('sMu').value);
-    pBlueWins = 1 - normalCDF((0.5 - mu) / sigma);
-    // Conditional expected blue share given losing (truncated normal mean below 0.5)
-    const z = (0.5 - mu) / sigma;
-    const pLose = normalCDF(z);
-    if (pLose > 1e-12) {
-      bLoss = mu - sigma * normalPDF(z) / pLose;
+  if (dist === 'normal') {
+    const sigma = parseFloat(document.getElementById('sS').value);
+
+    if (mode === 'direct') {
+      mu = parseFloat(document.getElementById('sMu').value);
+      pBlueWins = 1 - normalCDF((0.5 - mu) / sigma);
+      const z = (0.5 - mu) / sigma;
+      const pL = normalCDF(z);
+      if (pL > 1e-12) {
+        bLoss = mu - sigma * normalPDF(z) / pL;
+      } else {
+        bLoss = mu;
+      }
+      bLoss = Math.max(0, Math.min(0.5, bLoss));
     } else {
-      bLoss = mu; // degenerate
+      pBlueWins = parseFloat(document.getElementById('sP').value);
+      bLoss = parseFloat(document.getElementById('sB').value);
+      mu = 0.5 + sigma * normalInvCDF(pBlueWins);
     }
-    // Clamp to [0, 0.5]
-    bLoss = Math.max(0, Math.min(0.5, bLoss));
+
+    const z = (0.5 - mu) / sigma;
+    pivotality = normalPDF(z) / (sigma * N);
+    pdfFn = (x) => normalPDF((x - mu) / sigma) / sigma;
+
+    // Echo sigma
+    document.getElementById('vS').textContent = sigma.toFixed(3);
   } else {
-    pBlueWins = parseFloat(document.getElementById('sP').value);
-    bLoss = parseFloat(document.getElementById('sB').value);
-    mu = 0.5 + sigma * normalInvCDF(pBlueWins);
+    // Beta distribution
+    const phiSliderVal = parseFloat(document.getElementById('sPhi').value);
+    const phi = sliderToPhi(phiSliderVal);
+
+    if (mode === 'direct') {
+      mu = parseFloat(document.getElementById('sMu').value);
+      const a = mu * phi, b = (1 - mu) * phi;
+      const pL = betaCDF(0.5, a, b);
+      pBlueWins = 1 - pL;
+      if (pL > 1e-12) {
+        bLoss = mu * betaCDF(0.5, a + 1, b) / pL;
+      } else {
+        bLoss = mu;
+      }
+      bLoss = Math.max(0, Math.min(0.5, bLoss));
+    } else {
+      pBlueWins = parseFloat(document.getElementById('sP').value);
+      bLoss = parseFloat(document.getElementById('sB').value);
+      mu = findMuBeta(pBlueWins, phi);
+    }
+
+    // Pivotality via finite difference: how much does P(lose) change per vote?
+    const eps_mu = 1 / N;
+    const a0 = mu * phi, b0 = (1 - mu) * phi;
+    const a1 = (mu + eps_mu) * phi, b1 = (1 - mu - eps_mu) * phi;
+    const pLose0 = betaCDF(0.5, a0, b0);
+    const pLose1 = betaCDF(0.5, a1, b1);
+    pivotality = pLose0 - pLose1; // positive: blue vote reduces P(lose)
+    pivotality = Math.max(0, pivotality);
+
+    const a = mu * phi, b = (1 - mu) * phi;
+    pdfFn = (x) => betaPDF(x, a, b);
+
+    // Echo phi
+    document.getElementById('vPhi').textContent = phi < 10 ? phi.toFixed(1) : Math.round(phi);
+    const sigmaEquiv = Math.sqrt(mu * (1 - mu) / (phi + 1));
+    document.getElementById('vPhiSigma').textContent = sigmaEquiv.toFixed(3);
   }
 
-  // Echo inputs
+  // Echo common inputs
   document.getElementById('vN').textContent = fmtN(N);
-  document.getElementById('vS').textContent = sigma.toFixed(3);
   if (mode === 'direct') {
     document.getElementById('vMu').textContent = mu.toFixed(3);
     document.getElementById('vRedShare').textContent = (1 - mu).toFixed(3);
@@ -395,23 +551,14 @@ function compute() {
   const redMult = aggOn ? redBloc : 1;
   const blueMult = aggOn ? blueBloc : 1;
   const pLose = 1 - pBlueWins;
-  const z = (0.5 - mu) / sigma;
 
   // Pivotality framework
-  // Per-vote pivotality is a derivative; multiplying by a full bloc would
-  // linearise and overshoot. For the bloc as a whole the relevant counterfactual
-  // is "everyone in the bloc switched their vote." In both directions that
-  // collapses expected deaths to ~0 (μ→1 means no losing scenarios; μ→0 means
-  // no blue voters to die), so the bloc-level harm/benefit is just the current
-  // expected death toll D·P(lose). The two frameworks therefore agree at the
-  // bloc level; they only differ per individual.
-  const pivotality = normalPDF(z) / (sigma * N);
   const expectedDeaths = D * pLose;
   const rpHarm    = aggOn ? expectedDeaths : pivotality * D;
   const bpBenefit = aggOn ? expectedDeaths : pivotality * D;
   const bpCost = pLose * 1 * blueMult;
   const bpNet = bpBenefit - bpCost;
-  const rpSelf = pLose * 1 * redMult;            // own life saved vs. blue counterfactual
+  const rpSelf = pLose * 1 * redMult;
   const rpNet = rpSelf - rpHarm;
 
   // Share-of-outcome framework — divide by bloc size, not N
@@ -459,16 +606,14 @@ function compute() {
     : '1 in ' + (pivX < 1e15 ? fmtN(pivX) : pivX.toExponential(2));
   document.getElementById('pWinDisplay').textContent = fmtProb(pBlueWins);
 
-  drawPlot(mu, sigma);
+  drawPlot(mu, pdfFn);
 }
 
 // --- Plot ---
 const PLOT_X_MIN = 0;
 const PLOT_X_MAX = 1;
-// Fix the y-scale to the smallest sigma slider supports, so peaks shrink as sigma grows
-const Y_PEAK_REF = (1 / 0.005) * normalPDF(0); // peak height at sigma = sigma_min
 
-function drawPlot(mu, sigma) {
+function drawPlot(mu, pdfFn) {
   const canvas = document.getElementById('plot');
   const dpr = window.devicePixelRatio || 1;
   const rect = canvas.getBoundingClientRect();
@@ -488,18 +633,18 @@ function drawPlot(mu, sigma) {
   let curPeak = 0;
   for (let i = 0; i <= nPts; i++) {
     const x = xMin + (range * i) / nPts;
-    const y = normalPDF((x - mu) / sigma) / sigma;
+    const y = pdfFn(x);
     pts.push({ x, y });
     if (y > curPeak) curPeak = y;
   }
-  // Scale y so a sigma=0.04 distribution roughly fills the plot, but never exceeds
-  const yScale = Math.max(curPeak * 1.05, 1 / 0.04 * normalPDF(0) * 1.05);
+  // Scale y so the current distribution fills the plot nicely, but with a minimum
+  const yScale = Math.max(curPeak * 1.1, 5);
 
   function toC(x, y) {
     return [pad.l + ((x - xMin) / range) * pw, pad.t + ph - (y / yScale) * ph];
   }
 
-  // Gridlines at 30/40/50/60/70%
+  // Gridlines
   ctx.strokeStyle = '#ececea';
   ctx.lineWidth = 1;
   ctx.font = '10px ' + getComputedStyle(document.body).fontFamily;
@@ -563,24 +708,50 @@ function drawPlot(mu, sigma) {
     ctx.fillStyle = '#4a5568';
     ctx.font = '10px ' + getComputedStyle(document.body).fontFamily;
     ctx.textAlign = mu > 0.85 ? 'right' : (mu < 0.15 ? 'left' : 'center');
-    ctx.fillText('μ = ' + mu.toFixed(3), mx, pad.t - 2);
+    ctx.fillText('\u03BC = ' + mu.toFixed(3), mx, pad.t - 2);
+  }
+
+  // Distribution label
+  ctx.textAlign = 'right';
+  ctx.fillStyle = '#8a94a3';
+  ctx.font = '10px ' + getComputedStyle(document.body).fontFamily;
+  if (dist === 'normal') {
+    const sigma = parseFloat(document.getElementById('sS').value);
+    ctx.fillText('Normal(\u03BC, \u03C3\u00B2)', W - pad.r, pad.t + 12);
+  } else {
+    ctx.fillText('Beta(\u03BC\u00B7\u03C6, (1\u2212\u03BC)\u00B7\u03C6)', W - pad.r, pad.t + 12);
   }
 }
 
 // --- Sync between modes (so switching feels coherent) ---
 function syncDirectFromDetailed() {
-  const sigma = parseFloat(document.getElementById('sS').value);
-  const pBlueWins = parseFloat(document.getElementById('sP').value);
-  const mu = 0.5 + sigma * normalInvCDF(pBlueWins);
-  const muClamped = Math.max(0, Math.min(1, mu));
-  document.getElementById('sMu').value = muClamped;
+  if (dist === 'normal') {
+    const sigma = parseFloat(document.getElementById('sS').value);
+    const pBlueWins = parseFloat(document.getElementById('sP').value);
+    const mu = 0.5 + sigma * normalInvCDF(pBlueWins);
+    document.getElementById('sMu').value = Math.max(0, Math.min(1, mu));
+  } else {
+    const phiSliderVal = parseFloat(document.getElementById('sPhi').value);
+    const phi = sliderToPhi(phiSliderVal);
+    const pBlueWins = parseFloat(document.getElementById('sP').value);
+    const mu = findMuBeta(pBlueWins, phi);
+    document.getElementById('sMu').value = Math.max(0, Math.min(1, mu));
+  }
 }
 function syncDetailedFromDirect() {
-  const sigma = parseFloat(document.getElementById('sS').value);
-  const mu = parseFloat(document.getElementById('sMu').value);
-  const pBlueWins = 1 - normalCDF((0.5 - mu) / sigma);
-  const pClamped = Math.max(0.01, Math.min(0.99, pBlueWins));
-  document.getElementById('sP').value = pClamped;
+  if (dist === 'normal') {
+    const sigma = parseFloat(document.getElementById('sS').value);
+    const mu = parseFloat(document.getElementById('sMu').value);
+    const pBlueWins = 1 - normalCDF((0.5 - mu) / sigma);
+    document.getElementById('sP').value = Math.max(0.01, Math.min(0.99, pBlueWins));
+  } else {
+    const phiSliderVal = parseFloat(document.getElementById('sPhi').value);
+    const phi = sliderToPhi(phiSliderVal);
+    const mu = parseFloat(document.getElementById('sMu').value);
+    const a = mu * phi, b = (1 - mu) * phi;
+    const pBlueWins = 1 - betaCDF(0.5, a, b);
+    document.getElementById('sP').value = Math.max(0.01, Math.min(0.99, pBlueWins));
+  }
 }
 
 // --- Events ---
@@ -592,6 +763,8 @@ document.getElementById('howToggle').addEventListener('click', function() {
 });
 document.getElementById('modeDirect').addEventListener('click', () => { if (mode === 'detailed') syncDirectFromDetailed(); setMode('direct'); });
 document.getElementById('modeDetailed').addEventListener('click', () => { if (mode === 'direct') syncDetailedFromDirect(); setMode('detailed'); });
+document.getElementById('distNormal').addEventListener('click', () => setDist('normal'));
+document.getElementById('distBeta').addEventListener('click', () => setDist('beta'));
 
 window.addEventListener('resize', compute);
 compute();
