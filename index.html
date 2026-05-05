@@ -40,6 +40,48 @@
   h1 { font-family: var(--serif); font-size: 2rem; font-weight: 700; letter-spacing: -0.01em; line-height: 1.15; margin-bottom: 0.4rem; }
   .subtitle { color: var(--ink-2); font-size: 0.95rem; max-width: 36rem; margin: 0 auto; }
 
+  /* THE BUTTON */
+  .big-button-wrap { margin: 1.4rem auto 0; display: flex; align-items: center; justify-content: center; gap: 0.5rem; }
+  .big-button-wrap .btn-word { font-family: var(--serif); font-size: 1.5rem; font-weight: 700; letter-spacing: -0.01em; color: var(--ink); }
+  .big-button-wrap .btn-word-the { position: absolute; top: -1.1rem; left: 50%; transform: translateX(-50%); font-family: var(--serif); font-size: 0.85rem; font-weight: 600; color: var(--ink-2); white-space: nowrap; pointer-events: none; }
+  .big-button-col { position: relative; flex-shrink: 0; }
+  .big-button {
+    position: relative;
+    width: 72px; height: 72px;
+    border-radius: 50%;
+    border: none;
+    cursor: pointer;
+    outline: none;
+    background: radial-gradient(circle at 40% 35%, #c4a5b3, #906581 50%, #764d68);
+    box-shadow:
+      0 4px 0 #5e3a52,
+      0 7px 16px rgba(0,0,0,0.18),
+      inset 0 2px 3px rgba(255,255,255,0.3);
+    transition: transform 40ms steps(2), box-shadow 40ms steps(2);
+    -webkit-tap-highlight-color: transparent;
+    image-rendering: auto;
+  }
+  .big-button::after {
+    content: '';
+    position: absolute;
+    top: 10%; left: 18%; width: 34%; height: 22%;
+    border-radius: 50%;
+    background: radial-gradient(ellipse, rgba(255,255,255,0.5), transparent);
+    pointer-events: none;
+    transition: opacity 40ms steps(2);
+  }
+  .big-button:hover {
+    background: radial-gradient(circle at 40% 35%, #d1b5c1, #9d738d 50%, #825974);
+  }
+  .big-button:active, .big-button.pressed {
+    transform: translateY(4px);
+    box-shadow:
+      0 0 0 #5e3a52,
+      0 1px 4px rgba(0,0,0,0.12),
+      inset 0 2px 4px rgba(0,0,0,0.2);
+  }
+  .big-button:active::after, .big-button.pressed::after { opacity: 0; }
+
   .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); }
   .section { margin-bottom: 1.25rem; }
   .section-title { font-size: 0.78rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 0.55rem; padding-left: 0.15rem; }
@@ -151,7 +193,15 @@
 
 <header>
   <h1>My Finger is on the Button</h1>
-  <p class="subtitle">Push the Button</p>
+  <div class="big-button-wrap">
+    <span class="btn-word">Push</span>
+    <div class="big-button-col">
+      <span class="btn-word-the">the</span>
+      <button class="big-button" id="bigButton" type="button" aria-label="Push the button">
+      </button>
+    </div>
+    <span class="btn-word">Button</span>
+  </div>
 </header>
 
 <div class="section">
@@ -768,6 +818,16 @@ document.getElementById('distBeta').addEventListener('click', () => setDist('bet
 
 window.addEventListener('resize', compute);
 compute();
+
+document.getElementById('bigButton').addEventListener('mousedown', function() {
+  this.classList.add('pressed');
+});
+document.getElementById('bigButton').addEventListener('mouseup', function() {
+  this.classList.remove('pressed');
+});
+document.getElementById('bigButton').addEventListener('mouseleave', function() {
+  this.classList.remove('pressed');
+});
 </script>
 </body>
 </html>
